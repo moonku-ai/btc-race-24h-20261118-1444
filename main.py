@@ -59,7 +59,13 @@ def on_batch(state, batch):
         if fill.get("client_id") == pending_buy_id:
             pending_buy_id = None
             if fill.get("status") == "filled" and fill.get("side") == "buy":
-                entry_price = int(fill["price"])
+                # A fill price of 0 or less cannot happen on a real fill, but
+                # guard it: entry_price feeds a division below, and a bad
+                # price here would corrupt every exit decision after it.
+                price = int(fill["price"])
+                if price <= 0:
+                    continue
+                entry_price = price
                 high_since_entry = pending_buy_close
                 if high_since_entry < state.close(SYMBOL):
                     high_since_entry = state.close(SYMBOL)
